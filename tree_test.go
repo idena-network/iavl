@@ -1328,6 +1328,53 @@ func TestLoadVersionForOverwriting(t *testing.T) {
 	require.NoError(err, "SaveVersion should not fail.")
 }
 
+func TestLoadVersionForOverwritingCase2(t *testing.T) {
+	require := require.New(t)
+
+	tree := NewMutableTree(db.NewMemDB(), 0)
+
+	tree.Set([]byte{0x1}, []byte{0x1})
+
+	_, _, err := tree.SaveVersion()
+	require.NoError(err, "SaveVersion should not fail")
+
+	tree.Set([]byte{0x1}, []byte{0x2})
+
+	_, _, err = tree.SaveVersion()
+	require.NoError(err, "SaveVersion should not fail with the same key")
+
+	_, err = tree.LoadVersionForOverwriting(1)
+	require.NoError(err, "LoadVersionForOverwriting should not fail")
+
+	tree.Set([]byte{0x2}, []byte{0x3})
+
+	_, _, err = tree.SaveVersion()
+	require.NoError(err, "SaveVersion should not fail")
+
+	err = tree.DeleteVersion(1)
+	require.NoError(err, "DeleteVersion should not fail")
+
+	tree.Set([]byte{0x1}, []byte{0x3})
+
+	_, _, err = tree.SaveVersion()
+	require.NoError(err, "SaveVersion should not fail")
+}
+
+func TestLoadVersionForOverwritingCase3(t *testing.T) {
+	require := require.New(t)
+
+	tree := NewMutableTree(db.NewMemDB(), 0)
+	var err error
+	for i := 0; i < 50; i++ {
+		_, _, err = tree.SaveVersion()
+		require.NoError(err, "SaveVersion should not fail")
+	}
+
+	_, err = tree.LoadVersionForOverwriting(10)
+
+	require.NoError(err, "LoadVersionForOverwriting should not fail for empty tree")
+}
+
 //////////////////////////// BENCHMARKS ///////////////////////////////////////
 
 func BenchmarkTreeLoadAndDelete(b *testing.B) {
