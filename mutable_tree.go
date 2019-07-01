@@ -138,7 +138,6 @@ func (tree *MutableTree) recursiveSet(node *Node, key []byte, value []byte, orph
 	} else {
 		*orphans = append(*orphans, node)
 		node = node.clone(version)
-
 		if bytes.Compare(key, node.key) < 0 {
 			node.leftNode, updated = tree.recursiveSet(node.getLeftNode(tree.ImmutableTree), key, value, orphans)
 			node.leftHash = nil // leftHash is yet unknown
@@ -471,12 +470,36 @@ func (tree *MutableTree) deleteVersionsFrom(version int64) error {
 		if _, ok := tree.versions[version]; !ok {
 			return errors.Wrap(ErrVersionDoesNotExist, "")
 		}
+		if version == lastestVersion {
+			tree.deleteNodes(newLatestVersion, tree.ndb.getRoot(version))
+		}
 		tree.ndb.DeleteVersion(version, false)
 		delete(tree.versions, version)
 	}
+
+	tree.ndb.restoreNodes(newLatestVersion)
 	tree.ndb.Commit()
 	tree.ndb.resetLatestVersion(newLatestVersion)
 	return nil
+}
+
+// deleteNodes deletes all nodes which have greater version than current, because they are not useful anymore
+func (tree *MutableTree) deleteNodes(version int64, hash []byte) {
+	if len(hash) == 0 {
+		return
+	}
+
+	node := tree.ndb.GetNode(hash)
+	if node.leftHash != nil {
+		tree.deleteNodes(version, node.leftHash)
+	}
+	if node.rightHash != nil {
+		tree.deleteNodes(version, node.rightHash)
+	}
+
+	if node.version > version {
+		tree.ndb.batch.Delete(tree.ndb.nodeKey(hash))
+	}
 }
 
 // Rotate right and return the new node and orphan.

@@ -220,6 +220,14 @@ func (ndb *nodeDB) deleteOrphans(version int64) {
 	})
 }
 
+// restoreNodes restores nodes, which was orphaned, but after overwriting should not be orphans anymore
+func (ndb *nodeDB) restoreNodes(version int64) {
+	ndb.traverseOrphansVersion(version, func(key, hash []byte) {
+		// Delete orphan key and reverse-lookup key.
+		ndb.batch.Delete(key)
+	})
+}
+
 func (ndb *nodeDB) nodeKey(hash []byte) []byte {
 	return nodeKeyFormat.KeyBytes(hash)
 }
