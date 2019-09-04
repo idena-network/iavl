@@ -225,3 +225,7 @@ func (t *ImmutableTree) nodeSize() int {
 	})
 	return size
 }
+
+func (t *ImmutableTree) SetVirtualVersion(ver int64) {
+	t.version = ver
+}

@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"container/list"
 	"fmt"
+	"github.com/pkg/errors"
+	"github.com/tendermint/tendermint/crypto/tmhash"
+	dbm "github.com/tendermint/tm-db"
 	"sort"
 	"sync"
 
@@ -643,8 +646,8 @@ func (ndb *nodeDB) saveRoot(hash []byte, version int64, flushToDisk bool) error 
 	ndb.mtx.Lock()
 	defer ndb.mtx.Unlock()
 
-	if version != ndb.getLatestVersion()+1 {
-		return fmt.Errorf("must save consecutive versions. Expected %d, got %d", ndb.getLatestVersion()+1, version)
+	if version < ndb.getLatestVersion() {
+		return errors.New("must save increasing versions.")
 	}
 
 	key := ndb.rootKey(version)
