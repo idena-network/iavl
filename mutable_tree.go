@@ -15,11 +15,11 @@ var ErrVersionDoesNotExist = fmt.Errorf("version does not exist")
 
 // MutableTree is a persistent tree which keeps track of versions.
 type MutableTree struct {
-	*ImmutableTree                  // The current, working tree.
-	lastSaved      *ImmutableTree   // The most recently saved tree.
-	orphans        map[string]int64 // Nodes removed by changes to working tree.
-	versions       map[int64]bool   // The previous, saved versions of the tree.
-	ndb            *nodeDB
+	*ImmutableTree             // The current, working tree.
+	lastSaved *ImmutableTree   // The most recently saved tree.
+	orphans   map[string]int64 // Nodes removed by changes to working tree.
+	versions  map[int64]bool   // The previous, saved versions of the tree.
+	ndb       *nodeDB
 }
 
 // NewMutableTree returns a new tree with the specified cache size and datastore.
@@ -384,9 +384,7 @@ func (tree *MutableTree) GetVersioned(key []byte, version int64) (
 
 // SaveVersion saves a new tree version to disk, based on the current state of
 // the tree. Returns the hash and new version number.
-func (tree *MutableTree) SaveVersion() ([]byte, int64, error) {
-	version := tree.version + 1
-
+func (tree *MutableTree) saveVersionImpl(version int64) ([]byte, int64, error) {
 	if tree.versions[version] {
 		//version already exists, throw an error if attempting to overwrite
 		// Same hash means idempotent.  Return success.
@@ -432,6 +430,15 @@ func (tree *MutableTree) SaveVersion() ([]byte, int64, error) {
 	tree.orphans = map[string]int64{}
 
 	return tree.Hash(), version, nil
+}
+
+func (tree *MutableTree) SaveVersion() ([]byte, int64, error) {
+	version := tree.version + 1
+	return tree.saveVersionImpl(version)
+}
+
+func (tree *MutableTree) SaveVersionAt(version int64) ([]byte, int64, error) {
+	return tree.saveVersionImpl(version)
 }
 
 // DeleteVersion deletes a tree version from disk. The version can then no
