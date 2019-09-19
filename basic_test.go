@@ -470,3 +470,42 @@ func TestTreeProof(t *testing.T) {
 		}
 	}
 }
+
+func TestImmutableTree_ValidateTree(t *testing.T) {
+	db := db.NewMemDB()
+	tree := NewMutableTree(db, 100)
+
+	for i := byte(0); i < 255; i++ {
+		tree.Set([]byte{i}, []byte{i})
+	}
+
+	tree.SaveVersion()
+
+	tree = NewMutableTree(db, 100)
+	tree.Load()
+	assert.True(t, tree.ValidateTree())
+
+	hash := tree.root.hash
+	var node *Node
+	for {
+		node = tree.ndb.GetNode(hash)
+		if node.rightHash == nil {
+			break
+		}
+		hash = node.rightHash
+	}
+
+	node.value = []byte("corrupted")
+	node.persisted = false
+
+	assert.NotEqual(t, node.hash, node.ForceHash())
+	tree.ndb.SaveNode(node)
+
+	tree.SaveVersion()
+	assert.False(t, tree.ValidateTree())
+
+	tree = NewMutableTree(db, 100)
+	tree.Load()
+
+	assert.False(t, tree.ValidateTree())
+}

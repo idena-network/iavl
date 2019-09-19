@@ -10,7 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	amino "github.com/tendermint/go-amino"
+	"github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 )
 
@@ -200,7 +200,11 @@ func (node *Node) _hash() []byte {
 	if node.hash != nil {
 		return node.hash
 	}
+	node.hash = node.ForceHash()
+	return node.hash
+}
 
+func (node *Node) ForceHash() []byte {
 	h := tmhash.New()
 	buf := new(bytes.Buffer)
 	if err := node.writeHashBytes(buf); err != nil {
@@ -210,9 +214,7 @@ func (node *Node) _hash() []byte {
 	if err != nil {
 		panic(err)
 	}
-	node.hash = h.Sum(nil)
-
-	return node.hash
+	return h.Sum(nil)
 }
 
 // Hash the node and its descendants recursively. This usually mutates all
