@@ -1331,7 +1331,7 @@ func TestLoadVersionForOverwriting(t *testing.T) {
 func TestLoadVersionForOverwritingCase2(t *testing.T) {
 	require := require.New(t)
 
-	tree := NewMutableTree(db.NewMemDB(), 0)
+	tree, _ := NewMutableTreeWithOpts(db.NewMemDB(), db.NewMemDB(), 0, PruningOptions(1, 0))
 
 	tree.Set([]byte{0x1}, []byte{0x1})
 
@@ -1363,7 +1363,7 @@ func TestLoadVersionForOverwritingCase2(t *testing.T) {
 func TestLoadVersionForOverwritingCase3(t *testing.T) {
 	require := require.New(t)
 
-	tree := NewMutableTree(db.NewMemDB(), 0)
+	tree, _ := NewMutableTreeWithOpts(db.NewMemDB(), db.NewMemDB(), 0, PruningOptions(10, 10))
 	var err error
 	for i := 0; i < 50; i++ {
 		_, _, err = tree.SaveVersion()
@@ -1424,7 +1424,7 @@ func BenchmarkTreeLoadAndDelete(b *testing.B) {
 func TestMutableTree_SaveVersionAt(t *testing.T) {
 	require := require.New(t)
 
-	tree := NewMutableTree(db.NewMemDB(), 0)
+	tree, _ := NewMutableTree(db.NewMemDB(), 0)
 
 	tree.Set([]byte{0x1}, []byte{0x2})
 	tree.SaveVersion()
@@ -1446,7 +1446,6 @@ func TestMutableTree_SaveVersionAt(t *testing.T) {
 
 	_, v2 := tree.Get([]byte{0x2})
 	require.Equal([]byte{0x3}, v2)
-
 
 	require.Panics(func() {
 		tree.SaveVersionAt(version - 1)

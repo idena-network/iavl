@@ -557,8 +557,16 @@ func (tree *MutableTree) deleteVersionsFrom(version int64) error {
 		if err != nil {
 			return err
 		}
+		if version == lastestVersion {
+			root, err := tree.ndb.getRoot(version)
+			if err != nil {
+				return err
+			}
+			tree.deleteNodes(newLatestVersion, root)
+		}
 		delete(tree.versions, version)
 	}
+	tree.ndb.restoreNodes(newLatestVersion)
 	err := tree.ndb.Commit()
 	if err != nil {
 		return err
@@ -582,7 +590,12 @@ func (tree *MutableTree) deleteNodes(version int64, hash []byte) {
 	}
 
 	if node.version > version {
-		tree.ndb.batch.Delete(tree.ndb.nodeKey(hash))
+		if tree.ndb.isRecentVersion(node.version) {
+			tree.ndb.recentBatch.Delete(tree.ndb.nodeKey(hash))
+		}
+		if tree.ndb.isSnapshotVersion(node.version) {
+			tree.ndb.snapshotBatch.Delete(tree.ndb.nodeKey(hash))
+		}
 	}
 }
 
