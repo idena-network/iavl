@@ -320,9 +320,10 @@ func (tree *MutableTree) LazyLoadVersion(targetVersion int64) (int64, error) {
 	iTree := &ImmutableTree{
 		ndb:     tree.ndb,
 		version: targetVersion,
-		root:    tree.ndb.GetNode(rootHash),
 	}
-
+	if len(rootHash) != 0 {
+		iTree.root = tree.ndb.GetNode(rootHash)
+	}
 	tree.orphans = map[string]int64{}
 	tree.ImmutableTree = iTree
 	tree.lastSaved = iTree.clone()
