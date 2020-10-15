@@ -1682,3 +1682,34 @@ func TestLoadVersionForOverwritingCase3(t *testing.T) {
 		require.Equal([]byte{i}, v)
 	}
 }
+
+func TestMutableTree_SaveVersionAt(t *testing.T) {
+	require := require.New(t)
+
+	tree, _ := NewMutableTree(db.NewMemDB(), 0)
+
+	tree.Set([]byte{0x1}, []byte{0x2})
+	tree.SaveVersion()
+
+	tree.Set([]byte{0x2}, []byte{0x3})
+	version := int64(10)
+	_, v, err := tree.SaveVersionAt(version)
+
+	require.NoError(err)
+	require.Equal(version, v)
+
+	require.Equal([]int{1, int(version)}, tree.AvailableVersions())
+
+	_, err = tree.LoadVersion(version)
+	require.NoError(err)
+
+	_, v1 := tree.Get([]byte{0x1})
+	require.Equal([]byte{0x2}, v1)
+
+	_, v2 := tree.Get([]byte{0x2})
+	require.Equal([]byte{0x3}, v2)
+
+	require.Panics(func() {
+		tree.SaveVersionAt(version - 1)
+	})
+}
